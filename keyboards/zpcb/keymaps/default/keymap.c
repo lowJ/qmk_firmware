@@ -3,6 +3,8 @@
 
 #include QMK_KEYBOARD_H
 
+#include "uart.h"
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      /*
       * ┌───┬───┬───┬───┬───┐       ┌───┬───┬───┬───┬───┐
@@ -25,3 +27,18 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                    KC_LGUI, KC_BSPC, KC_SPC,           KC_SPC,  KC_ENT,  KC_RALT
     )
 };
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    static bool run_once = true;
+
+    if( run_once )
+    {
+        uart_init( 115200 );
+        run_once = false;
+    }
+
+    uart_write(0x55);
+
+    return true;
+
+}
