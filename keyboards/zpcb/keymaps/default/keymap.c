@@ -29,7 +29,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 };
 
 //Special commands
-//TODO:
+//TODO: check these enumerations
 #define CMD_SEARCH_OPEN 0x01
 #define CMD_SEARCH_EXIT 0x02
 #define CMD_SEARCH_UP 0x03
@@ -51,32 +51,59 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     {
         if( focus_stm )
         {
-            uart_wirte(CMD_EXIT_SRCH);
+            uart_wirte(CMD_SEARCH_EXIT);
             focus_stm = false;
         }
         else
         {
-            uart_write(CMD_OPEN_SRCH);
+            uart_write(CMD_SEARCH_OPEN);
             focus_stm = true;
         }
     }
 
-    if( focus_stm )
+    if( focus_stm && record->event.pressed ) /* only operate on presses */
     {
-        bool shift_pressed =
-        bool ctrl_pressed =
-        char c = keycode_to_filename_ascii( keycode, shift_pressed );
-        if( c )
+        uint8_t mods = get_mods();
+        bool shift_pressed = (mods & MOD_MASK_SHIFT); /* TODO: test this */
+        bool ctrl_pressed = ( mods & MOD_MASK_CTRL); /* TODO: test this */
+
+        if( ctrl_pressed ) /* ctrl layer handles up down select commands */
         {
+            switch ( keycode ) {
+                /* TODO: make these #defines, easier to configure */
+                case KC_P:
+                    uart_wirte( CMD_SEARCH_UP);
+                    break;
+                case KC_N:
+                    uart_wirte( CMD_SEARCH_DOWN );
+                    break;
+                case KC_ENT:
+                    uart_wirte( CMD_SEARCH_SELECT );
+                    break;
+            }
+        }
+        else if( kc == KC_BSPC ) /* backspace character in query */
+        {
+            uart_write( 0x08 ) /* ascii backspace */
+        }
+        else if( kc == KC_ESC ) /* escape can exit search */
+        {
+            uart_write(CMD_SEARCH_EXIT);
+            focus_stm = false;
+        }
+        else /* put characters into search query */
+        {
+            char c = keycode_to_filename_ascii(keycode, shift_pressed);
+
+            /* check if c is valid */
+            if( c )
+            {
+                uart_wirte( c );
+            }
 
         }
-        else if( kc == KC_BSPC )
-        {
-            c =
-        }
 
-
-        /* if focused on stm, return false to not send keypresses to HID Host */
+        /* when focused on stm, return false to not send keypresses to HID Host */
         return false;
     }
 
@@ -163,3 +190,4 @@ char keycode_to_filename_ascii( uint16_t kc , bool is_shift )
     return 0x00;
 
 }
+
