@@ -4,6 +4,9 @@
 #include QMK_KEYBOARD_H
 
 #include "uart.h"
+enum custom_keycodes {
+    KC_SRCH = SAFE_RANGE,
+};
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      /*
@@ -24,7 +27,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,                               KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,
         KC_A,    KC_S,    KC_D,    KC_F,    KC_G,                               KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN,
         KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,                               KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH,
-                                   KC_LGUI, KC_BSPC, KC_SPC,           KC_SPC,  KC_ENT,  KC_RALT
+                                   KC_LGUI, KC_BSPC, KC_SPC,           KC_SRCH, KC_ENT,  KC_RALT
     )
 };
 
@@ -35,6 +38,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 #define CMD_SEARCH_UP 0x03
 #define CMD_SEARCH_DOWN 0x04
 #define CMD_SEARCH_SELECT 0x05
+
+char keycode_to_filename_ascii( uint16_t kc , bool is_shift );
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     static bool run_once = true;
@@ -51,7 +56,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     {
         if( focus_stm )
         {
-            uart_wirte(CMD_SEARCH_EXIT);
+            uart_write(CMD_SEARCH_EXIT);
             focus_stm = false;
         }
         else
@@ -72,34 +77,35 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             switch ( keycode ) {
                 /* TODO: make these #defines, easier to configure */
                 case KC_P:
-                    uart_wirte( CMD_SEARCH_UP);
+                    uart_write( CMD_SEARCH_UP);
                     break;
                 case KC_N:
-                    uart_wirte( CMD_SEARCH_DOWN );
+                    uart_write( CMD_SEARCH_DOWN );
                     break;
                 case KC_ENT:
-                    uart_wirte( CMD_SEARCH_SELECT );
+                    uart_write( CMD_SEARCH_SELECT );
                     break;
             }
         }
-        else if( kc == KC_BSPC ) /* backspace character in query */
+        else if( keycode == KC_BSPC ) /* backspace character in query */
         {
-            uart_write( 0x08 ) /* ascii backspace */
+            uart_write( 0x08 ); /* ascii backspace */
         }
-        else if( kc == KC_ESC ) /* escape can exit search */
+        else if( keycode == KC_ESC ) /* escape can exit search */
         {
             uart_write(CMD_SEARCH_EXIT);
             focus_stm = false;
         }
         else /* put characters into search query */
         {
+            /* TODO: maybe we shouldn't filter any chars here? Filtering can be done on stm */
             char c = keycode_to_filename_ascii(keycode, shift_pressed);
 
-            /* check if c is valid */
-            if( c )
+            if( c ) /* check if c is valid */
             {
-                uart_wirte( c );
+                uart_write( c );
             }
+            /* else: do nothing */
 
         }
 
