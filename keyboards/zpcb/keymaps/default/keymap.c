@@ -28,17 +28,138 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     )
 };
 
+//Special commands
+//TODO:
+#define CMD_SEARCH_OPEN 0x01
+#define CMD_SEARCH_EXIT 0x02
+#define CMD_SEARCH_UP 0x03
+#define CMD_SEARCH_DOWN 0x04
+#define CMD_SEARCH_SELECT 0x05
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     static bool run_once = true;
+    static bool focus_stm = false;
 
+    /* TODO: better function for init? */
     if( run_once )
     {
         uart_init( 115200 );
         run_once = false;
     }
 
-    uart_write(0x55);
+    if( keycode == KC_SRCH && record->event.pressed )
+    {
+        if( focus_stm )
+        {
+            uart_wirte(CMD_EXIT_SRCH);
+            focus_stm = false;
+        }
+        else
+        {
+            uart_write(CMD_OPEN_SRCH);
+            focus_stm = true;
+        }
+    }
+
+    if( focus_stm )
+    {
+        bool shift_pressed =
+        bool ctrl_pressed =
+        char c = keycode_to_filename_ascii( keycode, shift_pressed );
+        if( c )
+        {
+
+        }
+        else if( kc == KC_BSPC )
+        {
+            c =
+        }
+
+
+        /* if focused on stm, return false to not send keypresses to HID Host */
+        return false;
+    }
+
 
     return true;
+
+}
+
+char keycode_to_filename_ascii( uint16_t kc , bool is_shift )
+{
+
+//Letters:
+//KC_A = 0x04
+//KC_Z = 0x1d
+//Numbers:
+//KC_1 = 0x1e
+//KC_0 = 0x27
+//Others:
+//KC_DOT
+//KC_UNDERSCORE
+//KC_SLSH /* added to support file paths */
+
+    // Handle letter keys
+    if( kc >= KC_A && kc <= KC_Z )
+    {
+        if( is_shift )
+        {
+            return ('a' + (kc - KC_A));
+        }
+        else
+        {
+            return ('A' + (kc - KC_A));
+        }
+
+    }
+
+    // Handle number keys
+    if( kc >= KC_1 && kc <= KC_0 )
+    {
+        if( ! is_shift )
+        {
+            if( KC_0 )
+            {
+                return '0';
+            }
+            else
+            {
+                return '1' + (kc = KC_1);
+
+            }
+        }
+    }
+
+    // Others
+    if( kc == KC_DOT )
+    {
+        if( ! is_shift )
+        {
+            return '.';
+        }
+    }
+
+    if (kc == KC_UNDERSCORE )
+    {
+        if( is_shift )
+        {
+            return '_';
+        }
+        else
+        {
+            return '-';
+        }
+    }
+
+    if( kc == KC_SLSH )
+    {
+        if( ! is_shift )
+        {
+            return '/';
+        }
+    }
+
+    // Unknown
+    return 0x00;
 
 }
